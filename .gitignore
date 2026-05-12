@@ -1,0 +1,149 @@
+# ------------------------------
+# OS & Editor Files
+# ------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-*
+
+# ------------------------------
+# Environment & Secrets
+# ------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# ------------------------------
+# Node.js (Frontend / Backend / Worker)
+# ------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnpm-store/
+
+# NestJS specific
+dist/
+coverage/
+*.log
+.nest/
+
+# Next.js specific
+.next/
+out/
+frontend/.next/
+frontend/out/
+
+# ------------------------------
+# Python (ML Service)
+# ------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+ml-service/venv/
+ml-service/env/
+ml-service/.venv/
+ml-service/.env/
+ml-service/.python-version
+ml-service/*.egg-info/
+ml-service/dist/
+ml-service/build/
+ml-service/.pytest_cache/
+ml-service/.mypy_cache/
+ml-service/.ruff_cache/
+ml-service/mlruns/
+ml-service/models/*.pkl
+ml-service/models/*.joblib
+
+# ------------------------------
+# Docker
+# ------------------------------
+docker-compose.override.yml
+.dockerignore
+*.tar
+*.tar.gz
+
+# ------------------------------
+# Database & Data
+# ------------------------------
+*.db
+*.sqlite
+*.sqlite3
+pgdata/
+redis-data/
+*.dump
+*.backup
+data/
+
+# ------------------------------
+# Logs & Temporary Files
+# ------------------------------
+logs/
+*.log
+tmp/
+temp/
+*.pid
+*.seed
+
+# ------------------------------
+# Testing & Coverage
+# ------------------------------
+coverage/
+.nyc_output/
+*.lcov
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+
+# ------------------------------
+# Build Artifacts
+# ------------------------------
+*.tgz
+*.zip
+*.gz
+dist-*/
+
+# ------------------------------
+# AI / ML Models & Embeddings (optional large files)
+# ------------------------------
+*.h5
+*.onnx
+*.pt
+*.bin
+*.safetensors
+*.gguf
+ml-service/embeddings_cache/
+
+# ------------------------------
+# Terraform / Infrastructure (if any)
+# ------------------------------
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# ------------------------------
+# Misc
+# ------------------------------
+.cache/
+.sass-cache/
+.eslintcache
+.stylelintcache
