@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.venv/
+Pipfile.lock
+
+# Testing and Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.tox/
+
+# Environment variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Git and Docker configuration
+.git/
+.gitignore
+Dockerfile*
+.dockerignore

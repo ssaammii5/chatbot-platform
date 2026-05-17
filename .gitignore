@@ -1,6 +1,6 @@
-# ------------------------------
+# ==========================================
 # OS & Editor Files
-# ------------------------------
+# ==========================================
 .DS_Store
 Thumbs.db
 *.swp
@@ -10,9 +10,9 @@ Thumbs.db
 .vscode/
 *.sublime-*
 
-# ------------------------------
+# ==========================================
 # Environment & Secrets
-# ------------------------------
+# ==========================================
 .env
 .env.*
 !.env.example
@@ -22,78 +22,79 @@ Thumbs.db
 secrets/
 credentials/
 
-# ------------------------------
-# Node.js (Frontend / Backend / Worker)
-# ------------------------------
+# ==========================================
+# Node.js (Root, Backend, Worker, Frontends)
+# ==========================================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 .pnpm-store/
 
-# NestJS specific
+# NestJS / TypeScript (backend & worker)
 dist/
-coverage/
+build/
 *.log
 .nest/
 
-# Next.js specific
+# Next.js (frontend / admin-frontend)
 .next/
 out/
 frontend/.next/
 frontend/out/
+admin-frontend/.next/
+admin-frontend/out/
 
-# ------------------------------
-# Python (ML Service)
-# ------------------------------
+# Svelte / Vite (widget)
+widget/dist/
+widget/.vite/
+widget/.svelte-kit/
+
+# ==========================================
+# Python (ai-service)
+# ==========================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-ml-service/venv/
-ml-service/env/
-ml-service/.venv/
-ml-service/.env/
-ml-service/.python-version
-ml-service/*.egg-info/
-ml-service/dist/
-ml-service/build/
-ml-service/.pytest_cache/
-ml-service/.mypy_cache/
-ml-service/.ruff_cache/
-ml-service/mlruns/
-ml-service/models/*.pkl
-ml-service/models/*.joblib
 
-# ------------------------------
+# Virtual Environments
+ai-service/venv/
+ai-service/env/
+ai-service/.venv/
+
+# Caches & Builds
+ai-service/.pytest_cache/
+ai-service/.mypy_cache/
+ai-service/.ruff_cache/
+ai-service/*.egg-info/
+ai-service/dist/
+ai-service/build/
+
+# ==========================================
 # Docker
-# ------------------------------
+# ==========================================
 docker-compose.override.yml
-.dockerignore
 *.tar
 *.tar.gz
+# Note: Do not ignore .dockerignore files, they should be committed!
 
-# ------------------------------
-# Database & Data
-# ------------------------------
+# ==========================================
+# Database & Data (Local Docker Volumes)
+# ==========================================
 *.db
 *.sqlite
 *.sqlite3
-pgdata/
-redis-data/
+postgres_data/
+redis_data/
 *.dump
 *.backup
-data/
 
-# ------------------------------
+# ==========================================
 # Logs & Temporary Files
-# ------------------------------
+# ==========================================
 logs/
 *.log
 tmp/
@@ -101,49 +102,33 @@ temp/
 *.pid
 *.seed
 
-# ------------------------------
-# Testing & Coverage
-# ------------------------------
+# ==========================================
+# Testing & Coverage (Cross-Platform)
+# ==========================================
 coverage/
 .nyc_output/
 *.lcov
 .coverage
 .coverage.*
 htmlcov/
-.pytest_cache/
 .tox/
-.nox/
 
-# ------------------------------
-# Build Artifacts
-# ------------------------------
-*.tgz
-*.zip
-*.gz
-dist-*/
-
-# ------------------------------
-# AI / ML Models & Embeddings (optional large files)
-# ------------------------------
+# ==========================================
+# AI / ML Models & Embeddings (Large Files)
+# ==========================================
 *.h5
 *.onnx
 *.pt
 *.bin
 *.safetensors
 *.gguf
-ml-service/embeddings_cache/
+ai-service/embeddings_cache/
+ai-service/models/*.pkl
+ai-service/models/*.joblib
 
-# ------------------------------
-# Terraform / Infrastructure (if any)
-# ------------------------------
-*.tfstate
-*.tfstate.*
-.terraform/
-
-# ------------------------------
-# Misc
-# ------------------------------
+# ==========================================
+# Misc Caches
+# ==========================================
 .cache/
-.sass-cache/
 .eslintcache
 .stylelintcache
