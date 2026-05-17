@@ -105,8 +105,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ai-service:
-        condition: service_started
     develop:
       watch:
         - action: sync
@@ -137,8 +135,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ai-service:
-        condition: service_started
     develop:
       watch:
         - action: sync
