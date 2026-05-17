@@ -132,3 +132,10 @@ ai-service/models/*.joblib
 .cache/
 .eslintcache
 .stylelintcache
+
+
+# ==========================================
+# Custom Files
+# ==========================================
+*.local.md
+*.local.txt
