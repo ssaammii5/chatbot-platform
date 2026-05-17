@@ -32,21 +32,43 @@ yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
 
-# NestJS / TypeScript (backend & worker)
+# Yarn Plug'n'Play (If applicable)
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ==========================================
+# TypeScript
+# ==========================================
+*.tsbuildinfo
+
+# ==========================================
+# NestJS / Backend (backend & worker)
+# ==========================================
 dist/
 build/
 *.log
 .nest/
 
+# ==========================================
 # Next.js (frontend / admin-frontend)
+# ==========================================
 .next/
 out/
 frontend/.next/
 frontend/out/
 admin-frontend/.next/
 admin-frontend/out/
+next-env.d.ts
+.vercel
 
+# ==========================================
 # Svelte / Vite (widget)
+# ==========================================
 widget/dist/
 widget/.vite/
 widget/.svelte-kit/
@@ -132,7 +154,6 @@ ai-service/models/*.joblib
 .cache/
 .eslintcache
 .stylelintcache
-
 
 # ==========================================
 # Custom Files
