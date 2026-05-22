@@ -1,9 +1,4 @@
-import { mount } from 'svelte'
-import './app.css'
-import App from './App.svelte'
+// Widget entry point — registers the <ai-chat-widget> custom element
+import './lib/ChatWidget.svelte'
 
-const app = mount(App, {
-  target: document.getElementById('app')!,
-})
-
-export default app
+console.log('AI Chat Widget registered as <ai-chat-widget>');
