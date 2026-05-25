@@ -11,11 +11,12 @@ export default defineConfig({
       fileName: 'ai-chat-widget',
       formats: ['es', 'iife'],
     },
-    // Output a single file for easy embedding
     rollupOptions: {
       output: {
-        inlineDynamicImports: true,
+        // Use codeSplitting: false to output a single embeddable bundle
       },
     },
+    // Disable code splitting to keep the widget as a single embeddable file
+    minify: true,
   },
 })

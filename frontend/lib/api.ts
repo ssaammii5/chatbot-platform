@@ -1,6 +1,8 @@
 // frontend/lib/api.ts
 // Centralized API client for the admin frontend.
-// All requests go through this module for consistent auth and error handling.
+// Security: Authentication uses HttpOnly cookies set by the backend.
+// The JWT access token is NEVER stored in localStorage or sessionStorage.
+// Only non-sensitive user display info (id, email, role, tenantId) is stored in sessionStorage.
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -20,21 +22,10 @@ class ApiError extends Error {
   }
 }
 
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  // Token is stored in memory/sessionStorage for this session
-  return sessionStorage.getItem('auth_token');
-}
-
-export function setToken(token: string) {
-  sessionStorage.setItem('auth_token', token);
-}
-
-export function clearToken() {
-  sessionStorage.removeItem('auth_token');
-  sessionStorage.removeItem('auth_user');
-}
-
+/**
+ * User display info (non-sensitive). Stored in sessionStorage for UI rendering.
+ * The actual auth token is in an HttpOnly cookie — NOT accessible from JS.
+ */
 export function getStoredUser(): { id: string; email: string; role: string; tenantId: string } | null {
   if (typeof window === 'undefined') return null;
   const raw = sessionStorage.getItem('auth_user');
@@ -47,20 +38,20 @@ export function getStoredUser(): { id: string; email: string; role: string; tena
 }
 
 export function setStoredUser(user: { id: string; email: string; role: string; tenantId: string }) {
+  // Safe to store non-sensitive display info in sessionStorage
   sessionStorage.setItem('auth_user', JSON.stringify(user));
+}
+
+export function clearStoredUser() {
+  sessionStorage.removeItem('auth_user');
 }
 
 async function request<T = any>(endpoint: string, options: ApiOptions = {}): Promise<T> {
   const { method = 'GET', body, headers = {}, isFormData = false } = options;
-  const token = getToken();
 
   const reqHeaders: Record<string, string> = {
     ...headers,
   };
-
-  if (token) {
-    reqHeaders['Authorization'] = `Bearer ${token}`;
-  }
 
   if (!isFormData && body) {
     reqHeaders['Content-Type'] = 'application/json';
@@ -69,6 +60,8 @@ async function request<T = any>(endpoint: string, options: ApiOptions = {}): Pro
   const res = await fetch(`${API_BASE}${endpoint}`, {
     method,
     headers: reqHeaders,
+    // credentials: 'include' sends the HttpOnly cookie on every request automatically
+    credentials: 'include',
     body: isFormData ? body : body ? JSON.stringify(body) : undefined,
   });
 
@@ -94,13 +87,22 @@ async function request<T = any>(endpoint: string, options: ApiOptions = {}): Pro
 // --- Auth ---
 export const authApi = {
   login: (tenantId: string, email: string, password: string) =>
-    request('/auth/login', { method: 'POST', body: { tenantId, email, password } }),
+    request<{ user: { id: string; email: string; role: string; tenantId: string } }>(
+      '/auth/login',
+      { method: 'POST', body: { tenantId, email, password } }
+    ),
 
   register: (tenantId: string, email: string, password: string) =>
-    request('/auth/register', { method: 'POST', body: { tenantId, email, password } }),
+    request<{ user: { id: string; email: string; role: string; tenantId: string } }>(
+      '/auth/register',
+      { method: 'POST', body: { tenantId, email, password } }
+    ),
 
   logout: () =>
     request('/auth/logout', { method: 'POST' }),
+
+  me: () =>
+    request<{ id: string; tenantId: string; role: string }>('/auth/me'),
 };
 
 // --- Tenants ---

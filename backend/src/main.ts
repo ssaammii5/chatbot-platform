@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const cookieParser = require('cookie-parser');
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ConfigService } from '@nestjs/config';
@@ -12,6 +14,9 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 3000;
+
+  // Cookie parser — required so the JWT strategy can read HttpOnly auth cookies
+  app.use(cookieParser());
 
   // Set up Redis adapter for WebSockets (for horizontal scaling)
   const redisIoAdapter = new RedisIoAdapter(app);
@@ -93,10 +98,9 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   });
 
-  // Bind to localhost for development security.
-  // In production behind a reverse proxy, bind to 0.0.0.0.
-  const host =
-    process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0'; // Docker requires 0.0.0.0
+  // In Docker, bind to 0.0.0.0 so the container exposes the port.
+  // In production, ensure this sits behind a reverse proxy (nginx/traefik).
+  const host = '0.0.0.0';
   await app.listen(port, host);
   console.log(`Application is running on: http://${host}:${port}`);
 }

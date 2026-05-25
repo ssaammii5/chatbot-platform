@@ -1,8 +1,25 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Request } from 'express';
 import { AuthService } from '../auth.service';
 import { getJwtSecret } from '../../config/jwt-secret';
+
+// Cookie name must match the one set in auth.controller.ts
+const AUTH_COOKIE_NAME = '__Host-access_token';
+
+/**
+ * Extracts the JWT from the HttpOnly cookie OR from the Authorization header.
+ * Cookie takes priority (used by browser clients).
+ * Bearer header fallback is used for API clients (e.g., the worker or Swagger).
+ */
+function cookieOrBearerExtractor(req: Request): string | null {
+  if (req?.cookies?.[AUTH_COOKIE_NAME]) {
+    return req.cookies[AUTH_COOKIE_NAME];
+  }
+  // Fallback to Bearer token for API/server-to-server calls
+  return ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -10,15 +27,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly authService: AuthService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: cookieOrBearerExtractor,
       ignoreExpiration: false,
       secretOrKey: getJwtSecret(),
-      algorithms: ['HS256'], // Only accept HS256 — reject 'none' algorithm
+      algorithms: ['HS256'], // Only accept HS256 — explicitly reject 'none' algorithm
+      passReqToCallback: false,
     });
   }
 
   async validate(payload: any) {
-    // Verify the session is still active (not logged out or expired)
+    // Verify the session is still active in the database (invalidated on logout)
     const session = await this.authService.validateSession(
       payload.tenantId,
       payload.sub,

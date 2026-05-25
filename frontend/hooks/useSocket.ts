@@ -18,6 +18,8 @@ export function useSocket() {
     const newSocket = io(WS_URL, {
       query: { tenantId: user.tenantId },
       transports: ['websocket', 'polling'],
+      // Send HttpOnly auth cookie with the WebSocket handshake
+      withCredentials: true,
     });
 
     newSocket.on('connect', () => {

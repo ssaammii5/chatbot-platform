@@ -110,16 +110,28 @@ def process_document(tenant_id: str, knowledge_base_id: str, file_path: str):
     from llama_index.core import SimpleDirectoryReader
     import os
 
-    logger.info(f"Processing document {file_path} for tenant {tenant_id}")
+    logger.info(f"Processing document for tenant {tenant_id}")
 
-    # Read the file
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
+    # Security: Validate the file path stays within the uploads directory
+    # to prevent path traversal attacks (e.g., ../../../../etc/passwd)
+    uploads_base = os.path.realpath(
+        os.path.join(os.path.dirname(__file__), '..', '..', '..', 'uploads')
+    )
+    resolved_path = os.path.realpath(file_path)
+    # Enforce trailing separator to prevent prefix-matching bypass
+    if not resolved_path.startswith(uploads_base + os.sep):
+        logger.error(
+            f"Path traversal attempt blocked for tenant {tenant_id}: {file_path}"
+        )
+        raise ValueError("Invalid file path: outside allowed upload directory")
 
-    reader = SimpleDirectoryReader(input_files=[file_path])
+    if not os.path.exists(resolved_path):
+        raise FileNotFoundError(f"File not found")
+
+    reader = SimpleDirectoryReader(input_files=[resolved_path])
     documents = reader.load_data()
 
-    # Add tenant metadata for isolation
+    # Add tenant metadata for isolation during vector similarity search
     for doc in documents:
         doc.metadata["tenant_id"] = tenant_id
         doc.metadata["knowledge_base_id"] = knowledge_base_id
@@ -131,10 +143,10 @@ def process_document(tenant_id: str, knowledge_base_id: str, file_path: str):
 
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
-    index = VectorStoreIndex.from_documents(
+    VectorStoreIndex.from_documents(
         documents,
         storage_context=storage_context,
         show_progress=True,
     )
-    logger.info(f"Successfully processed and embedded {file_path}")
+    logger.info(f"Successfully processed and embedded document for tenant {tenant_id}")
     return True

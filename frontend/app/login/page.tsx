@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { authApi, setToken, setStoredUser } from '../../lib/api';
+import { authApi, setStoredUser } from '../../lib/api';
 import { LogIn, UserPlus, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
@@ -18,11 +18,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Backend sets the JWT as an HttpOnly cookie automatically.
+      // We only receive safe display info (id, email, role) — never the raw token.
       const result = mode === 'login'
         ? await authApi.login(tenantId, email, password)
         : await authApi.register(tenantId, email, password);
 
-      setToken(result.accessToken);
+      // Store only non-sensitive display info for the UI session
       setStoredUser(result.user);
 
       // Redirect based on role
@@ -33,7 +35,7 @@ export default function LoginPage() {
         user: '/admin',
       };
 
-      // Full page redirect to clear any stale state
+      // Full page redirect to clear any stale React state
       window.location.href = redirectMap[result.user.role] || '/admin';
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please try again.');

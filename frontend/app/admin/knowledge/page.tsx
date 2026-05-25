@@ -1,8 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from '../../../components/Sidebar';
-import { Database, UploadCloud, Loader2, Plus, FileText, Trash2 } from 'lucide-react';
+import {
+  Database,
+  UploadCloud,
+  FileText,
+  Plus,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  ChevronRight,
+  X,
+  FolderOpen,
+} from 'lucide-react';
 import { knowledgeApi, getStoredUser } from '../../../lib/api';
 
 interface KnowledgeBase {
@@ -12,14 +23,33 @@ interface KnowledgeBase {
   createdAt: string;
 }
 
-export default function KnowledgeBasePage() {
+interface Document {
+  id: string;
+  filename: string;
+  fileType: string;
+  createdAt: string;
+}
+
+type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
+
+export default function KnowledgePage() {
   const [bases, setBases] = useState<KnowledgeBase[]>([]);
-  const [selectedBase, setSelectedBase] = useState<string>('');
-  const [file, setFile] = useState<File | null>(null);
-  const [newBaseName, setNewBaseName] = useState('');
-  const [newBaseDesc, setNewBaseDesc] = useState('');
+  const [selectedBase, setSelectedBase] = useState<KnowledgeBase | null>(null);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loadingBases, setLoadingBases] = useState(true);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+
+  // Create KB state
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', message: string }>({ type: 'idle', message: '' });
+  const [newKbName, setNewKbName] = useState('');
+  const [newKbDesc, setNewKbDesc] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  // Upload state
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
+  const [uploadError, setUploadError] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const user = getStoredUser();
@@ -27,195 +57,336 @@ export default function KnowledgeBasePage() {
     loadBases();
   }, []);
 
+  useEffect(() => {
+    if (selectedBase) {
+      loadDocuments(selectedBase.id);
+    }
+  }, [selectedBase]);
+
   async function loadBases() {
+    setLoadingBases(true);
     try {
       const data = await knowledgeApi.listBases();
       setBases(data);
+      if (data.length > 0 && !selectedBase) setSelectedBase(data[0]);
     } catch {
-      // Start with empty list if API not ready
-      setBases([]);
+      // silently ignore — will show empty state
+    } finally {
+      setLoadingBases(false);
     }
   }
 
-  const handleCreateBase = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newBaseName.trim()) return;
-    setStatus({ type: 'loading', message: 'Creating knowledge base...' });
+  async function loadDocuments(baseId: string) {
+    setLoadingDocs(true);
     try {
-      await knowledgeApi.createBase({ name: newBaseName, description: newBaseDesc || undefined });
-      setNewBaseName('');
-      setNewBaseDesc('');
+      const data = await knowledgeApi.listDocuments(baseId);
+      setDocuments(data);
+    } catch {
+      setDocuments([]);
+    } finally {
+      setLoadingDocs(false);
+    }
+  }
+
+  async function handleCreateKb(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newKbName.trim()) return;
+    setCreating(true);
+    try {
+      const kb = await knowledgeApi.createBase({ name: newKbName.trim(), description: newKbDesc.trim() || undefined });
+      setBases(prev => [...prev, kb]);
+      setSelectedBase(kb);
       setShowCreateForm(false);
-      await loadBases();
-      setStatus({ type: 'success', message: 'Knowledge base created!' });
+      setNewKbName('');
+      setNewKbDesc('');
     } catch (err: any) {
-      setStatus({ type: 'error', message: err.message || 'Failed to create knowledge base' });
+      // show error inline
+    } finally {
+      setCreating(false);
     }
-  };
+  }
 
-  const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file || !selectedBase) {
-      setStatus({ type: 'error', message: 'Please select a knowledge base and choose a file.' });
-      return;
-    }
-
-    setStatus({ type: 'loading', message: 'Uploading document...' });
+  async function handleUpload(file: File) {
+    if (!selectedBase) return;
+    setUploadStatus('uploading');
+    setUploadError('');
 
     try {
-      await knowledgeApi.upload(selectedBase, file);
-      setStatus({ type: 'success', message: 'Document successfully queued for AI processing!' });
-      setFile(null);
+      await knowledgeApi.upload(selectedBase.id, file);
+      setUploadStatus('success');
+      // Reload documents list
+      await loadDocuments(selectedBase.id);
+      setTimeout(() => setUploadStatus('idle'), 3000);
     } catch (err: any) {
-      setStatus({ type: 'error', message: err.message || 'Upload failed' });
+      setUploadStatus('error');
+      setUploadError(err.message || 'Upload failed. Please try again.');
     }
-  };
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) handleUpload(file);
+    // Reset input so same file can be re-uploaded
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleUpload(file);
+  }
+
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function getMimeLabel(mime: string) {
+    const map: Record<string, string> = {
+      'application/pdf': 'PDF',
+      'text/plain': 'TXT',
+      'text/markdown': 'MD',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+    };
+    return map[mime] || mime.split('/')[1]?.toUpperCase() || 'FILE';
+  }
 
   return (
     <div className="flex h-screen w-full">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto relative z-0">
-        <div className="p-8 max-w-5xl mx-auto space-y-8 animate-fade-in">
-          <header className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Knowledge Base</h1>
-              <p className="text-slate-400 mt-1">Upload and manage documents for your AI agents.</p>
-            </div>
+      <div className="flex flex-1 overflow-hidden">
+        {/* KB List Sidebar */}
+        <div className="w-72 border-r border-[rgba(255,255,255,0.08)] bg-slate-900/40 flex flex-col">
+          <div className="p-4 border-b border-[rgba(255,255,255,0.08)] flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Knowledge Bases</h2>
             <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+              onClick={() => setShowCreateForm(true)}
+              className="p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors text-slate-400 hover:text-slate-200"
+              title="New Knowledge Base"
             >
               <Plus className="w-4 h-4" />
-              New Base
             </button>
-          </header>
+          </div>
 
-          {/* Create Knowledge Base Form */}
+          {/* Create form */}
           {showCreateForm && (
-            <div className="glass-card p-6 max-w-2xl">
-              <h2 className="text-lg font-semibold mb-4">Create Knowledge Base</h2>
-              <form onSubmit={handleCreateBase} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Name</label>
-                  <input
-                    type="text"
-                    value={newBaseName}
-                    onChange={e => setNewBaseName(e.target.value)}
-                    required
-                    className="w-full px-4 py-2 bg-slate-900/50 border border-[rgba(255,255,255,0.1)] rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-                    placeholder="e.g., Product Documentation"
-                  />
+            <div className="p-4 border-b border-[rgba(255,255,255,0.08)] bg-slate-800/50">
+              <form onSubmit={handleCreateKb} className="space-y-3">
+                <input
+                  autoFocus
+                  type="text"
+                  value={newKbName}
+                  onChange={e => setNewKbName(e.target.value)}
+                  placeholder="Knowledge base name"
+                  required
+                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  value={newKbDesc}
+                  onChange={e => setNewKbDesc(e.target.value)}
+                  placeholder="Description (optional)"
+                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={creating || !newKbName.trim()}
+                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                  >
+                    {creating ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                    Create
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowCreateForm(false); setNewKbName(''); }}
+                    className="px-3 py-2 text-sm rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Description (optional)</label>
-                  <input
-                    type="text"
-                    value={newBaseDesc}
-                    onChange={e => setNewBaseDesc(e.target.value)}
-                    className="w-full px-4 py-2 bg-slate-900/50 border border-[rgba(255,255,255,0.1)] rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-                    placeholder="What kind of documents will be in this base?"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
-                >
-                  Create
-                </button>
               </form>
             </div>
           )}
 
-          {/* Knowledge Bases List */}
-          {bases.length > 0 && (
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold mb-4">Your Knowledge Bases</h2>
-              <div className="space-y-3">
-                {bases.map(kb => (
-                  <div
-                    key={kb.id}
-                    className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${
-                      selectedBase === kb.id
-                        ? 'bg-blue-500/10 border-blue-500/30'
-                        : 'bg-slate-900/30 border-[rgba(255,255,255,0.05)] hover:bg-slate-800/50'
-                    }`}
-                    onClick={() => setSelectedBase(kb.id)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg">
-                        <Database className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-sm">{kb.name}</h3>
-                        {kb.description && <p className="text-xs text-slate-500">{kb.description}</p>}
-                      </div>
-                    </div>
-                    <span className="text-xs text-slate-500">
-                      {new Date(kb.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                ))}
+          <div className="flex-1 overflow-y-auto py-2">
+            {loadingBases ? (
+              <div className="p-6 text-center">
+                <Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-500" />
               </div>
-            </div>
-          )}
-
-          {/* Upload Form */}
-          <div className="glass-card p-6 max-w-2xl">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
-                <UploadCloud className="w-5 h-5" />
+            ) : bases.length === 0 ? (
+              <div className="p-6 text-center text-slate-500 text-sm">
+                <Database className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p>No knowledge bases yet.</p>
+                <button onClick={() => setShowCreateForm(true)} className="text-blue-400 text-xs mt-1 hover:underline">
+                  Create your first one
+                </button>
               </div>
-              <h2 className="text-xl font-semibold">Upload Document</h2>
-            </div>
-
-            <form onSubmit={handleUpload} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Knowledge Base</label>
-                <select
-                  value={selectedBase}
-                  onChange={e => setSelectedBase(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-900/50 border border-[rgba(255,255,255,0.1)] rounded-lg text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+            ) : (
+              bases.map(kb => (
+                <button
+                  key={kb.id}
+                  onClick={() => setSelectedBase(kb)}
+                  className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors border-l-2 ${
+                    selectedBase?.id === kb.id
+                      ? 'bg-blue-500/10 border-l-blue-500 text-slate-100'
+                      : 'border-l-transparent hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
+                  }`}
                 >
-                  <option value="">Select a knowledge base...</option>
-                  {bases.map(kb => (
-                    <option key={kb.id} value={kb.id}>{kb.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Document File</label>
-                <p className="text-xs text-slate-500 mb-2">Accepted formats: PDF, TXT, MD, DOCX (max 10MB)</p>
-                <input
-                  type="file"
-                  onChange={e => setFile(e.target.files?.[0] || null)}
-                  accept=".pdf,.txt,.md,.docx"
-                  className="w-full px-4 py-2 bg-slate-900/50 border border-[rgba(255,255,255,0.1)] rounded-lg text-slate-200 focus:outline-none focus:border-blue-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/20 file:text-blue-400 hover:file:bg-blue-500/30"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={status.type === 'loading'}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
-              >
-                {status.type === 'loading' ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <UploadCloud className="w-5 h-5" />
-                )}
-                {status.type === 'loading' ? 'Processing...' : 'Upload Document'}
-              </button>
-
-              {status.message && (
-                <div className={`p-4 rounded-lg text-sm ${status.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : status.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
-                  {status.message}
-                </div>
-              )}
-            </form>
+                  <FolderOpen className={`w-4 h-4 flex-shrink-0 ${selectedBase?.id === kb.id ? 'text-blue-400' : ''}`} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{kb.name}</p>
+                    {kb.description && (
+                      <p className="text-xs text-slate-500 truncate">{kb.description}</p>
+                    )}
+                  </div>
+                  <ChevronRight className="w-3 h-3 ml-auto flex-shrink-0 opacity-50" />
+                </button>
+              ))
+            )}
           </div>
         </div>
-      </main>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-8">
+          {selectedBase ? (
+            <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
+              <header>
+                <h1 className="text-2xl font-bold">{selectedBase.name}</h1>
+                {selectedBase.description && (
+                  <p className="text-slate-400 mt-1 text-sm">{selectedBase.description}</p>
+                )}
+              </header>
+
+              {/* Upload Zone */}
+              <div className="glass-card p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg">
+                    <UploadCloud className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold">Upload Document</h2>
+                    <p className="text-xs text-slate-500">PDF, TXT, MD, DOCX — Max 10MB</p>
+                  </div>
+                </div>
+
+                <div
+                  onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
+                    dragOver
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/30'
+                  }`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.txt,.md,.docx"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+
+                  {uploadStatus === 'uploading' ? (
+                    <>
+                      <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+                      <p className="text-sm text-slate-400">Processing and embedding document...</p>
+                    </>
+                  ) : uploadStatus === 'success' ? (
+                    <>
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                      <p className="text-sm text-emerald-400 font-medium">Document queued for embedding!</p>
+                      <p className="text-xs text-slate-500">It will be searchable once processing completes.</p>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-8 h-8 text-slate-500" />
+                      <div className="text-center">
+                        <p className="text-sm text-slate-300 font-medium">Drop a file here or click to browse</p>
+                        <p className="text-xs text-slate-500 mt-1">Supports PDF, TXT, Markdown, DOCX</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {uploadStatus === 'error' && (
+                  <div className="mt-3 flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Documents List */}
+              <div className="glass-card p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <h2 className="font-semibold">
+                    Documents
+                    {!loadingDocs && (
+                      <span className="ml-2 text-xs text-slate-500 font-normal">
+                        ({documents.length} files)
+                      </span>
+                    )}
+                  </h2>
+                </div>
+
+                {loadingDocs ? (
+                  <div className="py-6 text-center">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-500" />
+                  </div>
+                ) : documents.length === 0 ? (
+                  <div className="py-8 text-center text-slate-500">
+                    <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">No documents yet.</p>
+                    <p className="text-xs mt-1">Upload a file above to get started.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {documents.map(doc => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center gap-4 p-3 rounded-lg bg-slate-800/40 border border-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.1)] transition-colors"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-bold text-blue-400">
+                            {getMimeLabel(doc.fileType)}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-200 truncate">{doc.filename}</p>
+                          <p className="text-xs text-slate-500">Added {formatDate(doc.createdAt)}</p>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full flex-shrink-0">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Indexed
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-slate-500">
+              <Database className="w-14 h-14 mb-4 opacity-20" />
+              <p className="text-lg font-medium">No knowledge base selected</p>
+              <p className="text-sm mt-1">Create or select a knowledge base from the sidebar.</p>
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="mt-6 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Create Knowledge Base
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

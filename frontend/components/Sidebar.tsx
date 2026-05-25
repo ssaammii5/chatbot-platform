@@ -1,12 +1,19 @@
 'use client';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, MessageSquare, Settings, Database, Activity, LogOut, Sparkles } from 'lucide-react';
-import { clearToken, getStoredUser } from '../lib/api';
+import { authApi, clearStoredUser, getStoredUser } from '../lib/api';
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const user = typeof window !== 'undefined' ? getStoredUser() : null;
+  const [user, setUser] = useState<{ id: string; email: string; role: string; tenantId: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setUser(getStoredUser());
+    setMounted(true);
+  }, []);
 
   const navItems = [
     { href: '/super-admin', label: 'Platform', icon: Activity, roles: ['super_admin'] },
@@ -15,14 +22,21 @@ export default function Sidebar() {
     { href: '/agent', label: 'Agent Inbox', icon: MessageSquare, roles: ['agent', 'admin', 'super_admin'] },
   ];
 
-  // Filter nav items by user role
-  const visibleItems = navItems.filter(item =>
-    !user?.role || item.roles.includes(user.role)
-  );
+  // Filter nav items by user role. Only calculate once mounted to avoid hydration mismatch.
+  const visibleItems = mounted
+    ? navItems.filter(item => !user?.role || item.roles.includes(user.role))
+    : [];
 
-  const handleLogout = () => {
-    clearToken();
-    // Full redirect to clear all state
+  const handleLogout = async () => {
+    try {
+      // Call backend to invalidate session and clear the HttpOnly cookie server-side
+      await authApi.logout();
+    } catch {
+      // Continue logout even if API call fails
+    }
+    // Clear local display info
+    clearStoredUser();
+    // Full redirect to clear all React state
     window.location.href = '/login';
   };
 
@@ -66,12 +80,13 @@ export default function Sidebar() {
             <span className="block text-slate-600 capitalize">{user.role?.replace('_', ' ')}</span>
           </div>
         )}
-        <button
+        <Link
+          href="/admin/settings"
           className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all duration-200 text-left"
         >
           <Settings className="w-5 h-5" />
           <span className="font-medium text-sm">Settings</span>
-        </button>
+        </Link>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 text-left"
