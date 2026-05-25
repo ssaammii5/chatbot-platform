@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
 
+    # Per-tenant rate limits (requests per minute)
+    # Chat: max AI queries per tenant per minute
+    RATE_LIMIT_CHAT_RPM: int = 60
+    # Embedding: max document embedding jobs per tenant per minute
+    RATE_LIMIT_EMBED_RPM: int = 20
+    # Agent suggestion: max suggestion requests per tenant per minute
+    RATE_LIMIT_SUGGEST_RPM: int = 120
+
     class Config:
         env_file = ".env"
         extra = "ignore"

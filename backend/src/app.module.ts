@@ -14,6 +14,7 @@ import { AiClientModule } from './ai-client/ai-client.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { QueuesModule } from './queues/queues.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { AgentsModule } from './agents/agents.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -46,6 +47,7 @@ import { validate } from './config/env.validation';
     KnowledgeModule,
     QueuesModule,
     AnalyticsModule,
+    AgentsModule,
   ],
   controllers: [AppController],
   providers: [

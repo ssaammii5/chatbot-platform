@@ -2,11 +2,12 @@ import asyncio
 import json
 import logging
 import re
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from .models import ChatRequest, DocumentRequest
 from app.core.config import settings
 from app.rag.engine import query_tenant_rag, process_document
+from app.utils.telemetry import report_usage
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -36,29 +37,9 @@ def _validate_query(query: str) -> None:
         )
 
 
-def report_usage_to_nestjs(
-    tenant_id: str, tokens: int, model: str, action: str
-):
-    """Background task to report token usage to NestJS analytics endpoint."""
-    import requests
-
-    try:
-        requests.post(
-            f"{settings.NESTJS_API_URL}/analytics/report",
-            json={
-                "tenantId": tenant_id,
-                "tokens": tokens,
-                "model": model,
-                "action": action,
-            },
-            timeout=5,
-        )
-    except Exception as e:
-        logger.warning(f"Failed to report usage to NestJS: {e}")
-
 
 @router.post("/chat/stream")
-async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
+async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks, http_request: Request):
     """
     RAG-based chat endpoint with streaming.
 
@@ -100,7 +81,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
             total_tokens = token_counter.total_llm_token_count
             model_used = settings.AI_CHAT_MODEL
             background_tasks.add_task(
-                report_usage_to_nestjs,
+                report_usage,
                 request.tenantId,
                 total_tokens,
                 model_used,
@@ -112,7 +93,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
 
 @router.post("/documents/process")
 async def process_document_endpoint(
-    request: DocumentRequest, background_tasks: BackgroundTasks
+    request: DocumentRequest, background_tasks: BackgroundTasks, http_request: Request
 ):
     """Process a document: parse, chunk, embed, and store in pgvector."""
     _validate_tenant_id(request.tenantId)
@@ -129,7 +110,7 @@ async def process_document_endpoint(
             request.filePath,
         )
         background_tasks.add_task(
-            report_usage_to_nestjs,
+            report_usage,
             request.tenantId,
             500,  # Approximate token cost for embedding
             settings.AI_EMBEDDING_MODEL,

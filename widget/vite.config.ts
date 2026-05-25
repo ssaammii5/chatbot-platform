@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [svelte({ compilerOptions: { customElement: true } })],
   build: {
     lib: {
-      entry: 'src/main.ts',
+      entry: 'src/app.ts',
       name: 'AiChatWidget',
       fileName: 'ai-chat-widget',
       formats: ['es', 'iife'],

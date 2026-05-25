@@ -1,0 +1,320 @@
+openapi: 3.0.3
+info:
+  title: NestJS ↔ FastAPI Internal Contract
+  description: |
+    OpenAPI specification defining the internal HTTP contract between the
+    NestJS backend (API gateway) and the FastAPI AI microservice.
+
+    This file is the single source of truth for:
+    - Request/response schemas for all internal endpoints
+    - Auth expectations (X-Internal-API-Key header)
+    - Error response formats
+
+    Both services MUST conform to this spec. Breaking changes must be
+    versioned and communicated to both teams.
+  version: 1.0.0
+
+servers:
+  - url: http://ai-service:8000
+    description: Internal Docker network URL (used by NestJS in production)
+  - url: http://localhost:8000
+    description: Local development URL
+
+security:
+  - InternalApiKey: []
+
+components:
+  securitySchemes:
+    InternalApiKey:
+      type: apiKey
+      in: header
+      name: X-Internal-API-Key
+      description: Shared secret between NestJS and FastAPI. Required in production.
+
+  schemas:
+    TenantId:
+      type: string
+      format: uuid
+      description: UUID v4 tenant identifier. Validated server-side.
+      example: "550e8400-e29b-41d4-a716-446655440000"
+
+    # ── Chat ────────────────────────────────────────────────────────────────────
+
+    ChatRequest:
+      type: object
+      required:
+        - tenantId
+        - query
+      properties:
+        tenantId:
+          $ref: '#/components/schemas/TenantId'
+        query:
+          type: string
+          maxLength: 2000
+          description: The end-user's message to process via RAG.
+          example: "What is your refund policy?"
+
+    HandoffSignal:
+      type: object
+      description: |
+        Sent as a JSON line in the SSE stream when the AI cannot answer
+        from the knowledge base and human escalation is required.
+      properties:
+        requires_handoff:
+          type: boolean
+          enum: [true]
+
+    # ── Documents ────────────────────────────────────────────────────────────────
+
+    DocumentRequest:
+      type: object
+      required:
+        - tenantId
+        - knowledgeBaseId
+        - filePath
+      properties:
+        tenantId:
+          $ref: '#/components/schemas/TenantId'
+        knowledgeBaseId:
+          $ref: '#/components/schemas/TenantId'
+        filePath:
+          type: string
+          description: |
+            Absolute path to the uploaded file inside the shared /uploads volume.
+            FastAPI validates this is within the allowed uploads directory
+            to prevent path traversal attacks.
+          example: "/app/uploads/550e8400-e29b-41d4-a716-446655440000/doc.pdf"
+
+    DocumentProcessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, error]
+        knowledgeBaseId:
+          $ref: '#/components/schemas/TenantId'
+        message:
+          type: string
+          description: Error description if status is "error". Intentionally generic.
+
+    # ── Agent Suggestions ────────────────────────────────────────────────────────
+
+    MessageItem:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [user, bot, agent]
+        content:
+          type: string
+          maxLength: 500
+          description: Truncated message content (last 500 chars for context).
+
+    SuggestRepliesRequest:
+      type: object
+      required:
+        - tenantId
+        - conversationId
+        - messages
+        - latestUserMessage
+      properties:
+        tenantId:
+          $ref: '#/components/schemas/TenantId'
+        conversationId:
+          $ref: '#/components/schemas/TenantId'
+        messages:
+          type: array
+          maxItems: 6
+          items:
+            $ref: '#/components/schemas/MessageItem'
+          description: Recent conversation history (last 6 messages).
+        latestUserMessage:
+          type: string
+          maxLength: 2000
+          description: The most recent end-user message to generate suggestions for.
+
+    SuggestRepliesResponse:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          maxItems: 3
+          items:
+            type: string
+          description: 2-3 suggested reply options for the human agent.
+        model:
+          type: string
+          description: The AI model used to generate suggestions.
+
+    # ── Health ───────────────────────────────────────────────────────────────────
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        ai_provider:
+          type: string
+          example: openai
+        model:
+          type: string
+          example: gpt-4o-mini
+        has_api_key:
+          type: boolean
+        rate_limiting:
+          type: string
+          example: enabled
+
+    # ── Errors ───────────────────────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Human-readable error description (intentionally generic for 5xx).
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      summary: AI Service health check
+      description: Returns current status, model config, and feature flags. No auth required.
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /chat/stream:
+    post:
+      operationId: chatStream
+      summary: RAG-based streaming chat
+      description: |
+        Streams a RAG-generated response for the given query. The response
+        is a text/event-stream where each chunk is a raw text fragment.
+
+        If the AI cannot answer from the knowledge base, a JSON line
+        `{"requires_handoff": true}` is sent to trigger human escalation.
+
+        Rate limited per tenant: see RATE_LIMIT_CHAT_RPM in config.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        "200":
+          description: Streaming text response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Stream of text chunks. Last line may be a HandoffSignal JSON.
+        "400":
+          description: Invalid input (bad tenantId format, empty query, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Missing or invalid X-Internal-API-Key (production only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "429":
+          description: Per-tenant rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /documents/process:
+    post:
+      operationId: processDocument
+      summary: Parse, chunk, embed, and index a document
+      description: |
+        Processes an uploaded document file: reads it from the shared /uploads
+        volume, splits it into chunks, generates embeddings, and stores them in
+        pgvector with tenant isolation metadata.
+
+        File path validation enforces the path stays inside /uploads (path
+        traversal protection).
+
+        Rate limited per tenant: see RATE_LIMIT_EMBED_RPM in config.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRequest'
+      responses:
+        "200":
+          description: Document processed (check status field for success/error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentProcessResponse'
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "401":
+          description: Unauthorized internal request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "429":
+          description: Per-tenant rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /agents/suggest:
+    post:
+      operationId: suggestAgentReplies
+      summary: Generate AI-suggested reply options for human agents
+      description: |
+        Given a conversation history and the latest end-user message,
+        returns 2-3 suggested reply strings the agent can click to auto-fill
+        their reply box. Suggestions are non-binding.
+
+        Rate limited per tenant: see RATE_LIMIT_SUGGEST_RPM in config.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuggestRepliesRequest'
+      responses:
+        "200":
+          description: List of suggested replies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestRepliesResponse'
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
