@@ -16,3 +16,6 @@ redis>=5.0.0
 pypdf>=4.0.0
 docx2txt>=0.8
 slowapi>=0.1.9
+llama-index-llms-anthropic>=0.1.0
+llama-index-llms-gemini>=0.1.0
+llama-index-embeddings-gemini>=0.1.0

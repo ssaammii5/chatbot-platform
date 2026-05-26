@@ -19,6 +19,26 @@ class OpenAIProvider(LLMProvider):
         )
 
 
+class AnthropicProvider(LLMProvider):
+    def get_llm(self) -> LLM:
+        from llama_index.llms.anthropic import Anthropic
+        return Anthropic(
+            model=settings.AI_CHAT_MODEL,
+            api_key=settings.AI_API_KEY,
+            temperature=0.7,
+        )
+
+
+class GeminiProvider(LLMProvider):
+    def get_llm(self) -> LLM:
+        from llama_index.llms.gemini import Gemini
+        return Gemini(
+            model=settings.AI_CHAT_MODEL,
+            api_key=settings.AI_API_KEY,
+            temperature=0.7,
+        )
+
+
 class MockProvider(LLMProvider):
     """Stub provider for development when no valid AI API key is configured."""
     def get_llm(self) -> LLM:
@@ -42,6 +62,9 @@ def get_llm_provider() -> LLMProvider:
 
     if provider_name == "openai":
         return OpenAIProvider()
-    # TODO: Add AnthropicProvider, etc.
+    elif provider_name == "anthropic":
+        return AnthropicProvider()
+    elif provider_name == "gemini":
+        return GeminiProvider()
     else:
         return OpenAIProvider()

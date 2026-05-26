@@ -26,8 +26,22 @@ def get_embedding_model():
             model=settings.AI_EMBEDDING_MODEL,
             api_key=settings.AI_API_KEY or "sk-invalid",
         )
+    elif provider == "gemini":
+        from llama_index.embeddings.gemini import GeminiEmbedding
+        return GeminiEmbedding(
+            model_name=settings.AI_EMBEDDING_MODEL,
+            api_key=settings.AI_API_KEY,
+        )
+    elif provider == "anthropic":
+        logger.warning(
+            "Anthropic does not provide a native embedding API. Falling back to OpenAI for embeddings. "
+            "Ensure you have an OpenAI API key configured if you intend to use RAG."
+        )
+        return OpenAIEmbedding(
+            model=settings.AI_EMBEDDING_MODEL,
+            api_key=settings.AI_API_KEY or "sk-invalid",
+        )
 
-    # Future: add Cohere, Anthropic, local (sentence-transformers), etc.
     logger.warning(
         f"Unknown embedding provider '{provider}', falling back to OpenAI."
     )
