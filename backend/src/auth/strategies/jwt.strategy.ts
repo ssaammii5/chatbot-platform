@@ -6,7 +6,9 @@ import { AuthService } from '../auth.service';
 import { getJwtSecret } from '../../config/jwt-secret';
 
 // Cookie name must match the one set in auth.controller.ts
-const AUTH_COOKIE_NAME = '__Host-access_token';
+// __Host- prefix requires Secure flag, which browsers reject over plain HTTP
+const IS_PROD = process.env.NODE_ENV === 'production';
+const AUTH_COOKIE_NAME = IS_PROD ? '__Host-access_token' : 'access_token';
 
 /**
  * Extracts the JWT from the HttpOnly cookie OR from the Authorization header.

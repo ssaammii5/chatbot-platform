@@ -15,6 +15,7 @@ import { KnowledgeModule } from './knowledge/knowledge.module';
 import { QueuesModule } from './queues/queues.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AgentsModule } from './agents/agents.module';
+import { ChatbotsModule } from './chatbots/chatbots.module';
 import { validate } from './config/env.validation';
 
 @Module({
@@ -48,6 +49,7 @@ import { validate } from './config/env.validation';
     QueuesModule,
     AnalyticsModule,
     AgentsModule,
+    ChatbotsModule,
   ],
   controllers: [AppController],
   providers: [

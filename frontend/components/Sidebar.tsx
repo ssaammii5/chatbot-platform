@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Settings, Database, Activity, LogOut, Sparkles } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Settings, Database, Activity, LogOut, Sparkles, Bot } from 'lucide-react';
 import { authApi, clearStoredUser, getStoredUser } from '../lib/api';
 
 export default function Sidebar() {
@@ -18,6 +18,7 @@ export default function Sidebar() {
   const navItems = [
     { href: '/super-admin', label: 'Platform', icon: Activity, roles: ['super_admin'] },
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'super_admin'] },
+    { href: '/admin/chatbots', label: 'Chatbots', icon: Bot, roles: ['admin', 'super_admin'] },
     { href: '/admin/knowledge', label: 'Knowledge Base', icon: Database, roles: ['admin', 'super_admin'] },
     { href: '/agent', label: 'Agent Inbox', icon: MessageSquare, roles: ['agent', 'admin', 'super_admin'] },
   ];

@@ -15,18 +15,21 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { Request, Response } from 'express';
 
-// Cookie name follows '__Host-' prefix convention per security skill:
-// Forces browser to only send to the exact host with Secure + no Domain attribute
-const AUTH_COOKIE_NAME = '__Host-access_token';
+// Cookie name:
+// - Production: '__Host-access_token' requires Secure + no Domain (strict hardening)
+// - Development: plain 'access_token' because __Host- prefix requires Secure flag,
+//   which browsers reject over plain HTTP (localhost)
+const IS_PROD = process.env.NODE_ENV === 'production';
+const AUTH_COOKIE_NAME = IS_PROD ? '__Host-access_token' : 'access_token';
 
 // Cookie configuration per security skill:
 // - HttpOnly: prevents JS access (XSS mitigation)
-// - Secure: HTTPS only (set false only in dev)
+// - Secure: HTTPS only — true in production, false in dev (localhost plain HTTP)
 // - SameSite=Strict: CSRF mitigation (no external navigation)
 // - Path=/: scoped to the whole application
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: IS_PROD,
   sameSite: 'strict' as const,
   path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
@@ -72,7 +75,7 @@ export class AuthController {
     // Clear the auth cookie
     res.clearCookie(AUTH_COOKIE_NAME, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: IS_PROD,
       sameSite: 'strict',
       path: '/',
     });

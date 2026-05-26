@@ -26,11 +26,18 @@ export class AiClientService {
     tenantId: string,
     query: string,
     onChunk: (chunk: string) => void,
+    knowledgeBaseId?: string | null,
   ): Promise<RagStreamResult> {
     try {
       const response = await this.httpService.axiosRef.post(
         `${this.baseUrl}/chat/stream`,
-        { tenantId, query },
+        {
+          tenantId,
+          query,
+          // Forward KB ID so FastAPI scopes pgvector search to the right knowledge base.
+          // Omit if null/undefined — FastAPI will fall back to tenant-wide search.
+          ...(knowledgeBaseId ? { knowledge_base_id: knowledgeBaseId } : {}),
+        },
         { responseType: 'stream', timeout: 30000 },
       );
 

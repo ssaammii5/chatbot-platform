@@ -8,7 +8,7 @@ import { eq, desc } from 'drizzle-orm';
 export class ChatService {
   constructor(private readonly dbService: DatabaseService) {}
 
-  async ensureConversation(tenantId: string, id: string, endUserId: string) {
+  async ensureConversation(tenantId: string, id: string, endUserId: string, chatbotId?: string | null) {
     return this.dbService.withTenant(tenantId, async (tx) => {
       try {
         await tx.insert(conversations).values({
@@ -16,6 +16,7 @@ export class ChatService {
           tenantId,
           endUserId,
           status: 'bot',
+          ...(chatbotId ? { chatbotId } : {}),
         });
       } catch (e: any) {
         // Ignore unique violation (already exists)

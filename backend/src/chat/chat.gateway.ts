@@ -8,6 +8,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { AiClientService } from '../ai-client/ai-client.service';
+import { ChatbotsService } from '../chatbots/chatbots.service';
 import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
@@ -29,6 +30,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly chatService: ChatService,
     private readonly aiClientService: AiClientService,
+    private readonly chatbotsService: ChatbotsService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -39,7 +41,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     // Join a specific room for this tenant's public interactions
     client.join(`tenant_${tenantId}`);
-    this.logger.log(`Client connected: ${client.id} to tenant ${tenantId}`);
+
+    // If a chatbotId was provided, join a chatbot-scoped room too
+    const chatbotId = client.handshake.query.chatbotId as string | undefined;
+    if (chatbotId && typeof chatbotId === 'string' && chatbotId.length <= 100) {
+      client.join(`chatbot_${chatbotId}`);
+    }
+
+    this.logger.log(`Client connected: ${client.id} to tenant ${tenantId}${chatbotId ? `, chatbot ${chatbotId}` : ''}`);
   }
 
   async handleDisconnect(client: Socket) {
@@ -52,6 +61,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     payload: { conversationId: string; content: string },
   ) {
     const tenantId = client.handshake.query.tenantId as string;
+    const chatbotId = client.handshake.query.chatbotId as string | undefined;
     const endUserId = client.id;
 
     // Input validation
@@ -71,11 +81,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // Ensure the conversation exists
+    // Ensure the conversation exists (link to chatbot if provided)
     await this.chatService.ensureConversation(
       tenantId,
       payload.conversationId,
       endUserId,
+      chatbotId ?? null,
     );
 
     // Save user message
@@ -105,6 +116,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Call AI Service with streaming
     try {
+      // Resolve knowledge base ID from the chatbot (null = tenant-wide fallback)
+      let knowledgeBaseId: string | null = null;
+      if (chatbotId) {
+        knowledgeBaseId = await this.chatbotsService.resolveKnowledgeBaseId(tenantId, chatbotId);
+      }
+
       const result = await this.aiClientService.queryRagStream(
         tenantId,
         sanitizedContent,
@@ -113,6 +130,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             .to(payload.conversationId)
             .emit('messageChunk', { chunk });
         },
+        knowledgeBaseId,
       );
 
       // Check if AI says it can't answer (requires handoff)

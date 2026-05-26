@@ -1,5 +1,5 @@
 // backend/src/database/schema.ts
-import { pgTable, uuid, varchar, timestamp, text, boolean, jsonb, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, text, boolean, jsonb, integer, unique } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // --- PLATFORM LEVEL ---
@@ -63,6 +63,39 @@ export const knowledgeBases = pgTable('knowledge_bases', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// 2a. Chatbots — one per website/domain, linked to a KB and a set of agents
+export const chatbots = pgTable('chatbots', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  domain: varchar('domain', { length: 255 }),
+  knowledgeBaseId: uuid('knowledge_base_id')
+    .references(() => knowledgeBases.id, { onDelete: 'set null' }),
+  brandingConfig: jsonb('branding_config').default({}),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// 2b. Chatbot ↔ Agent assignment (M:N)
+export const chatbotAgents = pgTable('chatbot_agents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  chatbotId: uuid('chatbot_id')
+    .notNull()
+    .references(() => chatbots.id, { onDelete: 'cascade' }),
+  agentId: uuid('agent_id')
+    .notNull()
+    .references(() => agents.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => ({
+  uniqChatbotAgent: unique('chatbot_agents_chatbot_agent_unique').on(t.chatbotId, t.agentId),
+}));
+
 export const documents = pgTable('documents', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id')
@@ -89,6 +122,9 @@ export const conversations = pgTable('conversations', {
   status: varchar('status', { length: 50 }).notNull().default('bot'), // 'bot', 'agent', 'closed'
   assignedAgentId: uuid('assigned_agent_id')
     .references(() => agents.id, { onDelete: 'set null' }),
+  // nullable — backward compat: conversations without a chatbot use tenant-wide RAG fallback
+  chatbotId: uuid('chatbot_id')
+    .references(() => chatbots.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -136,11 +172,13 @@ export const agentsRelations = relations(agents, ({ one, many }) => ({
   user: one(users, { fields: [agents.userId], references: [users.id] }),
   tenant: one(tenants, { fields: [agents.tenantId], references: [tenants.id] }),
   conversations: many(conversations),
+  chatbotAssignments: many(chatbotAgents),
 }));
 
 export const knowledgeBasesRelations = relations(knowledgeBases, ({ one, many }) => ({
   tenant: one(tenants, { fields: [knowledgeBases.tenantId], references: [tenants.id] }),
   documents: many(documents),
+  chatbots: many(chatbots),
 }));
 
 export const documentsRelations = relations(documents, ({ one }) => ({
@@ -148,9 +186,23 @@ export const documentsRelations = relations(documents, ({ one }) => ({
   knowledgeBase: one(knowledgeBases, { fields: [documents.knowledgeBaseId], references: [knowledgeBases.id] }),
 }));
 
+export const chatbotsRelations = relations(chatbots, ({ one, many }) => ({
+  tenant: one(tenants, { fields: [chatbots.tenantId], references: [tenants.id] }),
+  knowledgeBase: one(knowledgeBases, { fields: [chatbots.knowledgeBaseId], references: [knowledgeBases.id] }),
+  agentAssignments: many(chatbotAgents),
+  conversations: many(conversations),
+}));
+
+export const chatbotAgentsRelations = relations(chatbotAgents, ({ one }) => ({
+  chatbot: one(chatbots, { fields: [chatbotAgents.chatbotId], references: [chatbots.id] }),
+  agent: one(agents, { fields: [chatbotAgents.agentId], references: [agents.id] }),
+  tenant: one(tenants, { fields: [chatbotAgents.tenantId], references: [tenants.id] }),
+}));
+
 export const conversationsRelations = relations(conversations, ({ one, many }) => ({
   tenant: one(tenants, { fields: [conversations.tenantId], references: [tenants.id] }),
   assignedAgent: one(agents, { fields: [conversations.assignedAgentId], references: [agents.id] }),
+  chatbot: one(chatbots, { fields: [conversations.chatbotId], references: [chatbots.id] }),
   messages: many(messages),
 }));
 

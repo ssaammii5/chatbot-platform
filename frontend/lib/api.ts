@@ -147,3 +147,49 @@ export const knowledgeApi = {
 export const analyticsApi = {
   getMetrics: () => request('/analytics/metrics'),
 };
+
+// --- Chatbots ---
+export const chatbotsApi = {
+  list: () =>
+    request<ChatbotSummary[]>('/chatbots'),
+  create: (data: { name: string; domain?: string; knowledgeBaseId?: string; brandingConfig?: Record<string, any> }) =>
+    request('/chatbots', { method: 'POST', body: data }),
+  get: (id: string) =>
+    request<ChatbotDetail>(`/chatbots/${id}`),
+  update: (id: string, data: { name?: string; domain?: string; knowledgeBaseId?: string | null; brandingConfig?: Record<string, any>; isActive?: boolean }) =>
+    request(`/chatbots/${id}`, { method: 'PUT', body: data }),
+  remove: (id: string) =>
+    request(`/chatbots/${id}`, { method: 'DELETE' }),
+  listAgents: (id: string) =>
+    request<ChatbotAgent[]>(`/chatbots/${id}/agents`),
+  assignAgent: (id: string, agentId: string) =>
+    request(`/chatbots/${id}/agents`, { method: 'POST', body: { agentId } }),
+  unassignAgent: (id: string, agentId: string) =>
+    request(`/chatbots/${id}/agents/${agentId}`, { method: 'DELETE' }),
+};
+
+// --- Shared Types ---
+export interface ChatbotSummary {
+  id: string;
+  name: string;
+  domain: string | null;
+  knowledgeBaseId: string | null;
+  knowledgeBaseName: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatbotDetail extends ChatbotSummary {
+  brandingConfig: Record<string, any>;
+}
+
+export interface ChatbotAgent {
+  assignmentId: string;
+  agentId: string;
+  userId: string;
+  status: string;
+  email: string;
+  createdAt: string;
+}
+
