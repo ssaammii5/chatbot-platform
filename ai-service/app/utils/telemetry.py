@@ -57,6 +57,8 @@ def report_usage(
     model: str,
     action: str,
     conversation_id: Optional[str] = None,
+    ttft_ms: Optional[int] = None,
+    total_latency_ms: Optional[int] = None,
 ) -> None:
     """
     POST token usage to the NestJS backend analytics endpoint.
@@ -76,6 +78,10 @@ def report_usage(
     }
     if conversation_id:
         payload["conversationId"] = conversation_id
+    if ttft_ms is not None:
+        payload["ttftMs"] = ttft_ms
+    if total_latency_ms is not None:
+        payload["totalLatencyMs"] = total_latency_ms
 
     try:
         response = requests.post(

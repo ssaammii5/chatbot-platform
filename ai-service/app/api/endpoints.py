@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from .models import ChatRequest, DocumentRequest
@@ -53,6 +54,8 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks, h
     # Run the synchronous LlamaIndex RAG query in a thread pool executor
     # to avoid blocking the FastAPI event loop under concurrent requests.
     loop = asyncio.get_event_loop()
+    start_time = time.time()
+
     response_stream, token_counter, requires_handoff = await loop.run_in_executor(
         None,
         query_tenant_rag,
@@ -69,12 +72,17 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks, h
         )
 
     async def generator():
+        ttft_ms = None
         try:
             for text in response_stream.response_gen:
+                if ttft_ms is None:
+                    ttft_ms = int((time.time() - start_time) * 1000)
                 yield text
         except Exception as e:
             logger.error(f"Error during streaming: {e}")
             yield json.dumps({"requires_handoff": True})
+
+        total_latency_ms = int((time.time() - start_time) * 1000)
 
         # After stream completes, report usage in background
         if token_counter:
@@ -86,6 +94,9 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks, h
                 total_tokens,
                 model_used,
                 "rag_query",
+                None,
+                ttft_ms,
+                total_latency_ms
             )
 
     return StreamingResponse(generator(), media_type="text/event-stream")

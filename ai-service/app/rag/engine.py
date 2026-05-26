@@ -23,19 +23,15 @@ def configure_llama_settings():
     )
 
 
-def get_vector_store():
+def get_vector_store(tenant_id: str):
     """Create a PGVector store connection for tenant-scoped embeddings."""
     from llama_index.vector_stores.postgres import PGVectorStore
-    from sqlalchemy import make_url
+    from app.core.database import get_tenant_engine
 
-    url = make_url(settings.DATABASE_URL)
+    tenant_engine = get_tenant_engine(tenant_id)
 
-    return PGVectorStore.from_params(
-        database=url.database,
-        host=url.host,
-        password=url.password,
-        port=url.port,
-        user=url.username,
+    return PGVectorStore(
+        engine=tenant_engine,
         table_name="documents_embeddings",
         embed_dim=1536,  # Default for OpenAI text-embedding-3-small
     )
@@ -56,7 +52,7 @@ def query_tenant_rag(tenant_id: str, query: str):
 
         configure_llama_settings()
 
-        vector_store = get_vector_store()
+        vector_store = get_vector_store(tenant_id)
 
         # MUST enforce tenant isolation via Metadata Filters
         from llama_index.core.vector_stores.types import (
@@ -77,11 +73,24 @@ def query_tenant_rag(tenant_id: str, query: str):
 
         index = VectorStoreIndex.from_vector_store(vector_store=vector_store)
 
+        from llama_index.core import PromptTemplate
+        qa_prompt = PromptTemplate(
+            "Context information is below.\n"
+            "---------------------\n"
+            "{context_str}\n"
+            "---------------------\n"
+            "Given the context information and not prior knowledge, answer the query.\n"
+            "If the answer is not contained within the context, strictly refuse to answer.\n"
+            "Query: {query_str}\n"
+            "Answer: "
+        )
+
         # Build the query engine with RAG constraints
         query_engine = index.as_query_engine(
             filters=filters,
             streaming=True,
             similarity_top_k=settings.RAG_TOP_K,
+            text_qa_template=qa_prompt,
         )
 
         response = query_engine.query(query)
@@ -96,6 +105,17 @@ def query_tenant_rag(tenant_id: str, query: str):
                 f"Low confidence for tenant {tenant_id} query, flagging for handoff"
             )
             return response, token_counter, True
+
+        original_gen = response.response_gen
+
+        def citation_generator():
+            yield from original_gen
+            yield "\n\n**Sources:**\n"
+            for node in source_nodes:
+                filename = node.metadata.get("source_filename") or node.metadata.get("source_url") or "Unknown Document"
+                yield f"- {filename} (Confidence: {getattr(node, 'score', 0):.2f})\n"
+
+        response.response_gen = citation_generator()
 
         return response, token_counter, False
 
@@ -139,7 +159,7 @@ def process_document(tenant_id: str, knowledge_base_id: str, file_path: str):
     configure_llama_settings()
 
     # Get vector store and index
-    vector_store = get_vector_store()
+    vector_store = get_vector_store(tenant_id)
 
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
