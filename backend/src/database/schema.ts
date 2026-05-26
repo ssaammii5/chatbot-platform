@@ -1,8 +1,10 @@
 // backend/src/database/schema.ts
-import { pgTable, uuid, varchar, timestamp, text, boolean, jsonb, integer, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, timestamp, text, boolean, jsonb, integer, unique, pgEnum } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // --- PLATFORM LEVEL ---
+export const userRoleEnum = pgEnum('user_role', ['user', 'agent', 'supervisor', 'admin', 'super_admin']);
+
 export const tenants = pgTable('tenants', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 255 }).notNull(),
@@ -17,12 +19,11 @@ export const tenants = pgTable('tenants', {
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id')
-    .notNull()
-    .references(() => tenants.id, { onDelete: 'cascade' }),
+    .references(() => tenants.id, { onDelete: 'cascade' }), // Nullable for super_admin
   email: varchar('email', { length: 255 }).notNull(),
   // For secure authentication, we must store passwords as memory-hard hashes (e.g., Argon2/scrypt).
   passwordHash: text('password_hash'),
-  role: varchar('role', { length: 50 }).notNull().default('user'),
+  role: userRoleEnum('role').notNull().default('user'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -30,8 +31,7 @@ export const users = pgTable('users', {
 export const authSessions = pgTable('auth_sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id')
-    .notNull()
-    .references(() => tenants.id, { onDelete: 'cascade' }),
+    .references(() => tenants.id, { onDelete: 'cascade' }), // Nullable for super_admin
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
@@ -142,6 +142,31 @@ export const messages = pgTable('messages', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const cannedResponses = pgTable('canned_responses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const internalNotes = pgTable('internal_notes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id')
+    .notNull()
+    .references(() => tenants.id, { onDelete: 'cascade' }),
+  conversationId: uuid('conversation_id')
+    .notNull()
+    .references(() => conversations.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // 4. Analytics
 export const tokenUsage = pgTable('token_usage', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -161,6 +186,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   tenant: one(tenants, { fields: [users.tenantId], references: [tenants.id] }),
   agentProfile: one(agents, { fields: [users.id], references: [agents.userId] }),
   authSessions: many(authSessions),
+  internalNotes: many(internalNotes),
 }));
 
 export const authSessionsRelations = relations(authSessions, ({ one }) => ({
@@ -204,6 +230,7 @@ export const conversationsRelations = relations(conversations, ({ one, many }) =
   assignedAgent: one(agents, { fields: [conversations.assignedAgentId], references: [agents.id] }),
   chatbot: one(chatbots, { fields: [conversations.chatbotId], references: [chatbots.id] }),
   messages: many(messages),
+  internalNotes: many(internalNotes),
 }));
 
 export const messagesRelations = relations(messages, ({ one }) => ({
@@ -214,4 +241,14 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 export const tokenUsageRelations = relations(tokenUsage, ({ one }) => ({
   tenant: one(tenants, { fields: [tokenUsage.tenantId], references: [tenants.id] }),
   conversation: one(conversations, { fields: [tokenUsage.conversationId], references: [conversations.id] }),
+}));
+
+export const cannedResponsesRelations = relations(cannedResponses, ({ one }) => ({
+  tenant: one(tenants, { fields: [cannedResponses.tenantId], references: [tenants.id] }),
+}));
+
+export const internalNotesRelations = relations(internalNotes, ({ one }) => ({
+  tenant: one(tenants, { fields: [internalNotes.tenantId], references: [tenants.id] }),
+  conversation: one(conversations, { fields: [internalNotes.conversationId], references: [conversations.id] }),
+  author: one(users, { fields: [internalNotes.authorId], references: [users.id] }),
 }));

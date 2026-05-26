@@ -1,7 +1,7 @@
 // backend/src/chat/chat.service.ts
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { conversations, messages } from '../database/schema';
+import { conversations, messages, internalNotes } from '../database/schema';
 import { eq, desc } from 'drizzle-orm';
 
 @Injectable()
@@ -93,6 +93,36 @@ export class ChatService {
         .select()
         .from(messages)
         .where(eq(messages.conversationId, conversationId));
+    });
+  }
+
+  async saveInternalNote(
+    tenantId: string,
+    conversationId: string,
+    authorId: string,
+    content: string,
+  ) {
+    return this.dbService.withTenant(tenantId, async (tx) => {
+      const result = await tx
+        .insert(internalNotes)
+        .values({
+          tenantId,
+          conversationId,
+          authorId,
+          content,
+        })
+        .returning();
+      return result[0];
+    });
+  }
+
+  async getInternalNotes(tenantId: string, conversationId: string) {
+    return this.dbService.withTenant(tenantId, async (tx) => {
+      return tx
+        .select()
+        .from(internalNotes)
+        .where(eq(internalNotes.conversationId, conversationId))
+        .orderBy(desc(internalNotes.createdAt));
     });
   }
 }

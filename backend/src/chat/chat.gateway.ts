@@ -277,4 +277,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       content: sanitizedContent,
     });
   }
+
+  @SubscribeMessage('whisper')
+  async handleWhisper(
+    client: Socket,
+    payload: { conversationId: string; content: string; authorId: string },
+  ) {
+    if (!payload?.conversationId || !payload?.content || !payload?.authorId) return;
+    const tenantId = client.handshake.query.tenantId as string;
+    const sanitizedContent = payload.content.trim();
+    if (!sanitizedContent) return;
+
+    // Save internal note
+    await this.chatService.saveInternalNote(
+      tenantId,
+      payload.conversationId,
+      payload.authorId,
+      sanitizedContent,
+    );
+
+    // Broadcast only to the agent room, not to the end-user's room
+    this.server.to(`tenant_${tenantId}_agents`).emit('newWhisper', {
+      conversationId: payload.conversationId,
+      authorId: payload.authorId,
+      content: sanitizedContent,
+    });
+  }
 }

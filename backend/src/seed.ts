@@ -150,6 +150,28 @@ async function seed() {
       console.log(`   Password: DemoAgent123!  ← CHANGE IN PRODUCTION\n`);
     }
 
+    // Demo supervisor user
+    const demoSupervisorEmail = 'supervisor@acme.demo';
+    const [existingSupervisor] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, demoSupervisorEmail));
+
+    if (!existingSupervisor) {
+      const passwordHash = await argon2.hash('DemoSupervisor123!');
+      const [supervisor] = await db
+        .insert(users)
+        .values({
+          tenantId: demoTenant.id,
+          email: demoSupervisorEmail,
+          passwordHash,
+          role: 'supervisor',
+        })
+        .returning();
+      console.log(`✅ Created demo supervisor: ${supervisor.email}`);
+      console.log(`   Password: DemoSupervisor123!  ← CHANGE IN PRODUCTION\n`);
+    }
+
     console.log('🎉 Seed complete!\n');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('Quick Start Credentials');
@@ -157,6 +179,7 @@ async function seed() {
     console.log(`Super Admin:  ${superAdminEmail} / SuperAdmin123!`);
     console.log(`Demo Admin:   ${demoAdminEmail} / DemoAdmin123!`);
     console.log(`Demo Agent:   ${demoAgentEmail} / DemoAgent123!`);
+    console.log(`Demo Superv:  ${demoSupervisorEmail} / DemoSupervisor123!`);
     console.log(`Demo Tenant:  ${demoTenant.id}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
