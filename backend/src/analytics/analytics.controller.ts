@@ -23,7 +23,7 @@ export class AnalyticsController {
   @Get('metrics')
   @UseGuards(JwtAuthGuard, TenantRoleGuard)
   @ApiBearerAuth()
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @ApiOperation({ summary: 'Get token usage metrics for the current tenant dashboard' })
   async getMetrics(@Req() req: any) {
     return this.analyticsService.getMetrics(req.user.tenantId);

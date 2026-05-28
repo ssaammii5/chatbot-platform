@@ -21,7 +21,7 @@ export class TenantsController {
   }
 
   @Put('me')
-  @Roles('admin', 'super_admin') // Only admins of this tenant (or super_admin) can update it
+  @Roles('admin') // Only admins of this tenant can update it
   @ApiOperation({ summary: 'Update current tenant details and branding' })
   async updateTenant(@Req() req: any, @Body() dto: UpdateTenantDto) {
     return this.tenantsService.updateTenant(req.user.tenantId, dto);

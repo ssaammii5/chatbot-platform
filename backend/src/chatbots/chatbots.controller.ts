@@ -37,7 +37,7 @@ export class ChatbotsController {
   // ─── CRUD ────────────────────────────────────────────────────────────────
 
   @Post()
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new chatbot for this tenant' })
   async create(@Req() req: any, @Body() dto: CreateChatbotDto) {
@@ -45,14 +45,14 @@ export class ChatbotsController {
   }
 
   @Get()
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @ApiOperation({ summary: 'List all chatbots for this tenant' })
   async list(@Req() req: any) {
     return this.chatbotsService.list(req.user.tenantId);
   }
 
   @Get(':id')
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @ApiOperation({ summary: 'Get a single chatbot with its KB and agent info' })
   @ApiParam({ name: 'id', description: 'Chatbot ID' })
   async getOne(@Req() req: any, @Param('id') id: string) {
@@ -60,7 +60,7 @@ export class ChatbotsController {
   }
 
   @Put(':id')
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @ApiOperation({ summary: 'Update chatbot name, domain, knowledge base, or branding' })
   @ApiParam({ name: 'id', description: 'Chatbot ID' })
   async update(
@@ -72,7 +72,7 @@ export class ChatbotsController {
   }
 
   @Delete(':id')
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a chatbot' })
   @ApiParam({ name: 'id', description: 'Chatbot ID' })
@@ -83,7 +83,7 @@ export class ChatbotsController {
   // ─── Agent Assignments ────────────────────────────────────────────────────
 
   @Get(':id/agents')
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @ApiOperation({ summary: 'List agents assigned to a chatbot' })
   @ApiParam({ name: 'id', description: 'Chatbot ID' })
   async listAgents(@Req() req: any, @Param('id') id: string) {
@@ -91,7 +91,7 @@ export class ChatbotsController {
   }
 
   @Post(':id/agents')
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Assign an agent to a chatbot' })
   @ApiParam({ name: 'id', description: 'Chatbot ID' })
@@ -104,7 +104,7 @@ export class ChatbotsController {
   }
 
   @Delete(':id/agents/:agentId')
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unassign an agent from a chatbot' })
   @ApiParam({ name: 'id', description: 'Chatbot ID' })

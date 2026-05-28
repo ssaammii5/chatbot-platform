@@ -40,7 +40,7 @@ export class KnowledgeController {
   ) {}
 
   @Post('bases')
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @ApiOperation({ summary: 'Create a new knowledge base' })
   async createKnowledgeBase(
     @Req() req: any,
@@ -54,14 +54,14 @@ export class KnowledgeController {
   }
 
   @Get('bases')
-  @Roles('admin', 'super_admin', 'agent')
+  @Roles('admin', 'agent')
   @ApiOperation({ summary: 'List all knowledge bases for the tenant' })
   async listKnowledgeBases(@Req() req: any) {
     return this.knowledgeService.listKnowledgeBases(req.user.tenantId);
   }
 
   @Get('bases/:id/documents')
-  @Roles('admin', 'super_admin', 'agent')
+  @Roles('admin', 'agent')
   @ApiOperation({ summary: 'List all documents in a knowledge base' })
   async listDocuments(@Req() req: any, @Param('id') knowledgeBaseId: string) {
     return this.knowledgeService.listDocuments(
@@ -71,7 +71,7 @@ export class KnowledgeController {
   }
 
   @Post('upload')
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {

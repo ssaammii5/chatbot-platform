@@ -40,7 +40,7 @@ export class AgentsController {
   }
 
   @Get()
-  @Roles('admin', 'super_admin')
+  @Roles('admin')
   @ApiOperation({ summary: 'List all agents for the tenant (admin only)' })
   async listAgents(@Req() req: any) {
     return this.agentsService.listAgents(req.user.tenantId);
