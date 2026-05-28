@@ -29,14 +29,15 @@ export default function LoginPage() {
 
       // Redirect based on role
       const redirectMap: Record<string, string> = {
-        super_admin: '/super-admin',
-        admin: '/admin',
-        agent: '/agent',
-        user: '/admin',
+        super_admin: '/platform',
+        admin: '/dashboard',
+        supervisor: '/dashboard',
+        agent: '/inbox',
+        user: '/dashboard',
       };
 
       // Full page redirect to clear any stale React state
-      window.location.href = redirectMap[result.user.role] || '/admin';
+      window.location.href = redirectMap[result.user.role] || '/dashboard';
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please try again.');
     } finally {

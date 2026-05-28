@@ -10,12 +10,13 @@ export default function Home() {
     if (user) {
       // Redirect authenticated users to their dashboard
       const redirectMap: Record<string, string> = {
-        super_admin: '/super-admin',
-        admin: '/admin',
-        agent: '/agent',
-        user: '/admin',
+        super_admin: '/platform',
+        admin: '/dashboard',
+        supervisor: '/dashboard',
+        agent: '/inbox',
+        user: '/dashboard',
       };
-      window.location.href = redirectMap[user.role] || '/admin';
+      window.location.href = redirectMap[user.role] || '/dashboard';
     }
   }, []);
 

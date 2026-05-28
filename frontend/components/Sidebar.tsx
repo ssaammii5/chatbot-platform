@@ -16,11 +16,11 @@ export default function Sidebar() {
   }, []);
 
   const navItems = [
-    { href: '/super-admin', label: 'Platform', icon: Activity, roles: ['super_admin'] },
-    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
-    { href: '/admin/chatbots', label: 'Chatbots', icon: Bot, roles: ['admin'] },
-    { href: '/admin/knowledge', label: 'Knowledge Base', icon: Database, roles: ['admin'] },
-    { href: '/agent', label: 'Agent Inbox', icon: MessageSquare, roles: ['agent', 'admin'] },
+    { href: '/platform', label: 'Platform', icon: Activity, roles: ['super_admin'] },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
+    { href: '/chatbots', label: 'Chatbots', icon: Bot, roles: ['admin'] },
+    { href: '/knowledge', label: 'Knowledge Base', icon: Database, roles: ['admin'] },
+    { href: '/inbox', label: 'Agent Inbox', icon: MessageSquare, roles: ['agent', 'admin'] },
   ];
 
   // Filter nav items by user role. Only calculate once mounted to avoid hydration mismatch.
@@ -61,11 +61,10 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                isActive
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
                   ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span className="font-medium text-sm">{item.label}</span>
@@ -82,7 +81,7 @@ export default function Sidebar() {
           </div>
         )}
         <Link
-          href="/admin/settings"
+          href="/settings"
           className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all duration-200 text-left"
         >
           <Settings className="w-5 h-5" />

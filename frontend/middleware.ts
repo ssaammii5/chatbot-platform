@@ -11,9 +11,12 @@ export function middleware(request: NextRequest) {
 
   // Protect all internal dashboards
   const isProtectedRoute = 
-    pathname.startsWith('/admin') || 
-    pathname.startsWith('/super-admin') || 
-    pathname.startsWith('/agent');
+    pathname.startsWith('/dashboard') || 
+    pathname.startsWith('/platform') || 
+    pathname.startsWith('/inbox') ||
+    pathname.startsWith('/chatbots') ||
+    pathname.startsWith('/knowledge') ||
+    pathname.startsWith('/settings');
 
   if (isProtectedRoute && !hasAuthCookie) {
     // Instant server-side redirect to login (0 flashes, 0 loading screens)
@@ -35,9 +38,12 @@ export function middleware(request: NextRequest) {
 // Optimize middleware performance by restricting the paths it runs on
 export const config = {
   matcher: [
-    '/admin/:path*',
-    '/super-admin/:path*',
-    '/agent/:path*',
+    '/dashboard/:path*',
+    '/platform/:path*',
+    '/inbox/:path*',
+    '/chatbots/:path*',
+    '/knowledge/:path*',
+    '/settings/:path*',
     '/login'
   ],
 };
