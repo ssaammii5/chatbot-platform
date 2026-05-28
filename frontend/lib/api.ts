@@ -114,6 +114,8 @@ export const tenantsApi = {
 
 // --- Super Admin ---
 export const superAdminApi = {
+  getHealth: () => request('/super-admin/health'),
+  getGlobalUsage: () => request('/super-admin/usage'),
   listTenants: () => request('/super-admin/tenants'),
   createTenant: (data: { name: string; domain?: string }) =>
     request('/super-admin/tenants', { method: 'POST', body: data }),

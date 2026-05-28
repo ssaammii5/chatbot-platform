@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar';
-import { Building2, Plus, MoreVertical, Search, Loader2, Trash2, X } from 'lucide-react';
+import { Building2, Plus, MoreVertical, Search, Loader2, Trash2, X, Activity, Database as DbIcon, Zap } from 'lucide-react';
 import { superAdminApi, getStoredUser } from '../../lib/api';
 
 interface Tenant {
@@ -22,11 +22,28 @@ export default function SuperAdminPage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
+  const [health, setHealth] = useState<{ status: string; database: string } | null>(null);
+  const [usage, setUsage] = useState<{ totalTokens: number; totalTenants: number } | null>(null);
+
   useEffect(() => {
     const user = getStoredUser();
     if (!user) { window.location.href = '/login'; return; }
     loadTenants();
+    loadMetrics();
   }, []);
+
+  async function loadMetrics() {
+    try {
+      const [h, u] = await Promise.all([
+        superAdminApi.getHealth(),
+        superAdminApi.getGlobalUsage()
+      ]);
+      setHealth(h);
+      setUsage(u);
+    } catch {
+      // Ignore errors for metrics
+    }
+  }
 
   async function loadTenants() {
     try {
@@ -93,6 +110,52 @@ export default function SuperAdminPage() {
               Provision Tenant
             </button>
           </header>
+
+          {/* Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-slate-400">Platform Health</span>
+              </div>
+              <div className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+                {health ? (
+                  <><span className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span> All Systems Operational</>
+                ) : (
+                  <span className="text-slate-500">Checking...</span>
+                )}
+              </div>
+              {health && <p className="text-xs text-slate-500 mt-2">Database: {health.database}</p>}
+            </div>
+
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 bg-blue-500/20 text-blue-400 rounded-xl">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-slate-400">Total Tenants</span>
+              </div>
+              <div className="text-3xl font-bold text-slate-100">
+                {usage ? usage.totalTenants.toLocaleString() : '...'}
+              </div>
+              <p className="text-xs text-blue-400 mt-2">Active organizations</p>
+            </div>
+
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 bg-purple-500/20 text-purple-400 rounded-xl">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-slate-400">Global Token Usage</span>
+              </div>
+              <div className="text-3xl font-bold text-slate-100">
+                {usage ? usage.totalTokens.toLocaleString() : '...'}
+              </div>
+              <p className="text-xs text-purple-400 mt-2">Total platform consumption</p>
+            </div>
+          </div>
 
           {/* Create Modal */}
           {showCreateModal && (

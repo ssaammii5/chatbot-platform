@@ -14,6 +14,18 @@ import { TenantRoleGuard } from '../auth/guards/tenant-role.guard';
 export class SuperAdminController {
   constructor(private readonly superAdminService: SuperAdminService) {}
 
+  @Get('health')
+  @ApiOperation({ summary: 'Get platform health status' })
+  async getHealth() {
+    return this.superAdminService.getHealth();
+  }
+
+  @Get('usage')
+  @ApiOperation({ summary: 'Get global token usage and tenant counts' })
+  async getGlobalUsage() {
+    return this.superAdminService.getGlobalUsage();
+  }
+
   @Get('tenants')
   @ApiOperation({ summary: 'List all tenants across the platform' })
   async listTenants() {
