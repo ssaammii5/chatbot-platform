@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Sidebar from '../../../components/Sidebar';
+import Sidebar from '../../components/Sidebar';
 import {
   Database,
   UploadCloud,
@@ -14,7 +14,7 @@ import {
   X,
   FolderOpen,
 } from 'lucide-react';
-import { knowledgeApi, getStoredUser } from '../../../lib/api';
+import { knowledgeApi, getStoredUser } from '../../lib/api';
 
 interface KnowledgeBase {
   id: string;

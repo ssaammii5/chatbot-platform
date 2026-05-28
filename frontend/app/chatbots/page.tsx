@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Sidebar from '../../../components/Sidebar';
+import Sidebar from '../../components/Sidebar';
 import {
   Bot,
   Plus,
@@ -16,7 +16,7 @@ import {
   X,
   Sparkles,
 } from 'lucide-react';
-import { chatbotsApi, knowledgeApi, getStoredUser, type ChatbotSummary } from '../../../lib/api';
+import { chatbotsApi, knowledgeApi, getStoredUser, type ChatbotSummary } from '../../lib/api';
 
 interface KnowledgeBase {
   id: string;

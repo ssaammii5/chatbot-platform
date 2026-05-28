@@ -177,6 +177,7 @@ export const chatbotsApi = {
 // --- Shared Types ---
 export interface ChatbotSummary {
   id: string;
+  tenantId: string;
   name: string;
   domain: string | null;
   knowledgeBaseId: string | null;

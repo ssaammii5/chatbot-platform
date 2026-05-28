@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Sidebar from '../../../../components/Sidebar';
+import Sidebar from '../../../components/Sidebar';
 import {
   Bot,
   Globe,
@@ -27,7 +27,7 @@ import {
   getStoredUser,
   type ChatbotDetail,
   type ChatbotAgent,
-} from '../../../../lib/api';
+} from '../../../lib/api';
 
 interface KnowledgeBase {
   id: string;
