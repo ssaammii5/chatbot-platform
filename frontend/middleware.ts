@@ -14,6 +14,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/dashboard') || 
     pathname.startsWith('/platform') || 
     pathname.startsWith('/inbox') ||
+    pathname.startsWith('/monitoring') ||
     pathname.startsWith('/chatbots') ||
     pathname.startsWith('/knowledge') ||
     pathname.startsWith('/settings');
@@ -41,6 +42,7 @@ export const config = {
     '/dashboard/:path*',
     '/platform/:path*',
     '/inbox/:path*',
+    '/monitoring/:path*',
     '/chatbots/:path*',
     '/knowledge/:path*',
     '/settings/:path*',

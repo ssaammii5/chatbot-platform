@@ -48,6 +48,19 @@ export class ChatService {
     });
   }
 
+  async assignAgent(
+    tenantId: string,
+    id: string,
+    agentId: string | null,
+  ) {
+    return this.dbService.withTenant(tenantId, async (tx) => {
+      await tx
+        .update(conversations)
+        .set({ assignedAgentId: agentId, updatedAt: new Date() })
+        .where(eq(conversations.id, id));
+    });
+  }
+
   async saveMessage(
     tenantId: string,
     conversationId: string,

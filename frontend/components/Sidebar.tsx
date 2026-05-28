@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Settings, Database, Activity, LogOut, Sparkles, Bot } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Settings, Database, Activity, LogOut, Sparkles, Bot, Eye } from 'lucide-react';
 import { authApi, clearStoredUser, getStoredUser } from '../lib/api';
 
 export default function Sidebar() {
@@ -18,9 +18,10 @@ export default function Sidebar() {
   const navItems = [
     { href: '/platform', label: 'Platform', icon: Activity, roles: ['super_admin'] },
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
+    { href: '/monitoring', label: 'Live Monitoring', icon: Eye, roles: ['supervisor', 'admin', 'super_admin'] },
     { href: '/chatbots', label: 'Chatbots', icon: Bot, roles: ['admin'] },
     { href: '/knowledge', label: 'Knowledge Base', icon: Database, roles: ['admin'] },
-    { href: '/inbox', label: 'Agent Inbox', icon: MessageSquare, roles: ['agent', 'admin'] },
+    { href: '/inbox', label: 'Agent Inbox', icon: MessageSquare, roles: ['agent', 'supervisor', 'admin'] },
   ];
 
   // Filter nav items by user role. Only calculate once mounted to avoid hydration mismatch.

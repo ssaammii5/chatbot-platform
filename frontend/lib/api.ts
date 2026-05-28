@@ -126,6 +126,10 @@ export const chatApi = {
   listConversations: () => request('/chat/conversations'),
   getMessages: (conversationId: string) =>
     request(`/chat/conversations/${conversationId}/messages`),
+  updateStatus: (conversationId: string, status: string) =>
+    request(`/chat/conversations/${conversationId}/status`, { method: 'PUT', body: { status } }),
+  assignAgent: (conversationId: string, agentId: string | null) =>
+    request(`/chat/conversations/${conversationId}/assign`, { method: 'PUT', body: { agentId } }),
 };
 
 // --- Knowledge ---

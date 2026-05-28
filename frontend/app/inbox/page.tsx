@@ -147,6 +147,20 @@ export default function AgentWorkspace() {
     setReplyText('');
   };
 
+  const handleCloseSession = async (convId: string) => {
+    try {
+      await chatApi.updateStatus(convId, 'closed');
+      setConversations(prev => {
+        const copy = { ...prev };
+        delete copy[convId];
+        return copy;
+      });
+      setActiveConvId(null);
+    } catch (e) {
+      console.error('Failed to close session', e);
+    }
+  };
+
   const activeConv = activeConvId ? conversations[activeConvId] : null;
   const convList = Object.values(conversations);
 
@@ -200,11 +214,19 @@ export default function AgentWorkspace() {
         <div className="flex-1 flex flex-col">
           {activeConv ? (
             <>
-              <div className="p-4 border-b border-[rgba(255,255,255,0.08)] glass backdrop-blur-md z-10 sticky top-0">
-                <h3 className="font-semibold text-lg">{activeConv.endUserId}</h3>
-                <p className={`text-xs ${activeConv.status === 'pending_agent' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  {activeConv.status === 'pending_agent' ? 'Waiting for your response' : 'Agent Hand-off Active'}
-                </p>
+              <div className="p-4 border-b border-[rgba(255,255,255,0.08)] glass backdrop-blur-md z-10 sticky top-0 flex justify-between items-center">
+                <div>
+                  <h3 className="font-semibold text-lg">{activeConv.endUserId}</h3>
+                  <p className={`text-xs ${activeConv.status === 'pending_agent' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                    {activeConv.status === 'pending_agent' ? 'Waiting for your response' : 'Agent Hand-off Active'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleCloseSession(activeConv.id)}
+                  className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 rounded-lg text-sm transition-colors"
+                >
+                  Close Session
+                </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
