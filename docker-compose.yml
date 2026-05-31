@@ -15,7 +15,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
@@ -59,8 +59,11 @@ services:
       - AI_CHAT_MODEL=${AI_CHAT_MODEL:-gpt-4o-mini}
       - RAG_TOP_K=${RAG_TOP_K:-5}
       - RAG_MAX_TOKENS=${RAG_MAX_TOKENS:-1024}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - NESTJS_API_URL=http://backend:3000
     volumes:
       - ./ai-service:/app
+      - ./uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -69,8 +72,8 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./ai-service/src
-          target: /app/src
+          path: ./ai-service/app
+          target: /app/app
         - action: rebuild
           path: ./ai-service/requirements.txt
 
@@ -90,7 +93,7 @@ services:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
       - REDIS_URL=redis://default:${REDIS_PASSWORD}@redis:6379
       - AI_SERVICE_URL=http://ai-service:8000
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - OAUTH2_ISSUER=${OAUTH2_ISSUER}
       - OAUTH2_CLIENT_ID=${OAUTH2_CLIENT_ID}
       - OAUTH2_CLIENT_SECRET=${OAUTH2_CLIENT_SECRET}
@@ -100,6 +103,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - ./uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -130,6 +134,7 @@ services:
     volumes:
       - ./worker:/app
       - /app/node_modules
+      - ./uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -169,11 +174,11 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./frontend/src/app
-          target: /app/src/app
+          path: ./frontend/app
+          target: /app/app
         - action: sync
-          path: ./frontend/src/components
-          target: /app/src/components
+          path: ./frontend/components
+          target: /app/components
 
   widget:
     build:
