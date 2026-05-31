@@ -1,1 +1,1 @@
-# chatbot-platformss
+# chatbot-platforms
