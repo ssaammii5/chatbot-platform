@@ -24,21 +24,25 @@ chatbot-platform/
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 22+
 - Docker & Docker Compose
 - npm 10+
 
 ### Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### Start Infrastructure (Postgres, Redis)
+
 ```bash
 docker compose up postgres redis -d
 ```
 
 ### Run All Services (Local Dev, without Docker)
+
 ```bash
 # All apps in parallel
 npm run dev
@@ -51,6 +55,7 @@ npm run dev:widget     # Vite/Svelte on :3002
 ```
 
 ### Run via Docker Compose (Full Stack)
+
 ```bash
 docker compose up
 # or with live reload:
@@ -100,6 +105,7 @@ import {
 ## Clean Legacy Directories
 
 The old `backend/` directory (at root) may have Docker-owned files that require:
+
 ```bash
 sudo rm -rf backend/
 ```

@@ -32,7 +32,7 @@
     "lint": {
       "executor": "@nx/eslint:lint",
       "options": {
-        "lintFilePatterns": ["apps/backend/**/*.ts"]
+        "lintFilePatterns": ["apps/backend/src/**/*.ts", "apps/backend/test/**/*.ts"]
       }
     },
     "db:migrate": {
