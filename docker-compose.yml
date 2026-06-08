@@ -43,7 +43,7 @@ services:
   # ==========================================
   ai-service:
     build:
-      context: ./ai-service
+      context: ./apps/ai-service
       dockerfile: Dockerfile.dev
     container_name: acp-ai-service
     restart: unless-stopped
@@ -62,7 +62,7 @@ services:
       - INTERNAL_API_KEY=${INTERNAL_API_KEY}
       - NESTJS_API_URL=http://backend:3000
     volumes:
-      - ./ai-service:/app
+      - ./apps/ai-service:/app
       - ./uploads:/app/uploads
     depends_on:
       postgres:
@@ -72,17 +72,17 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./ai-service/app
+          path: ./apps/ai-service/app
           target: /app/app
         - action: rebuild
-          path: ./ai-service/requirements.txt
+          path: ./apps/ai-service/requirements.txt
 
   # ==========================================
   # 3. BACKEND & WORKERS (NestJS + BullMQ)
   # ==========================================
   backend:
     build:
-      context: ./backend
+      context: ./apps/backend
       dockerfile: Dockerfile.dev
     container_name: acp-backend
     restart: unless-stopped
@@ -101,7 +101,7 @@ services:
       - RATE_LIMIT_TENANT_TOKENS_PER_MIN=${RATE_LIMIT_TENANT_TOKENS_PER_MIN:-50000}
       - USAGE_METERING_ENABLED=true
     volumes:
-      - ./backend:/app
+      - ./apps/backend:/app
       - /app/node_modules
       - ./uploads:/app/uploads
     depends_on:
@@ -112,16 +112,16 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./backend/src
+          path: ./apps/backend/src
           target: /app/src
           ignore:
             - node_modules/
         - action: rebuild
-          path: ./backend/package.json
+          path: ./apps/backend/package.json
 
   worker:
     build:
-      context: ./worker
+      context: ./apps/worker
       dockerfile: Dockerfile.dev
     container_name: acp-worker
     restart: unless-stopped
@@ -132,7 +132,7 @@ services:
       - AI_SERVICE_URL=http://ai-service:8000
       - BULLMQ_CONCURRENCY=${BULLMQ_CONCURRENCY:-5}
     volumes:
-      - ./worker:/app
+      - ./apps/worker:/app
       - /app/node_modules
       - ./uploads:/app/uploads
     depends_on:
@@ -143,19 +143,19 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./worker/src
+          path: ./apps/worker/src
           target: /app/src
           ignore:
             - node_modules/
         - action: rebuild
-          path: ./worker/package.json
+          path: ./apps/worker/package.json
 
   # ==========================================
   # 4. FRONTENDS (Next.js Admin)
   # ==========================================
   frontend:
     build:
-      context: ./frontend
+      context: ./apps/frontend
       dockerfile: Dockerfile.dev
     container_name: acp-frontend
     restart: unless-stopped
@@ -166,7 +166,7 @@ services:
       - NEXT_PUBLIC_WS_URL=ws://localhost:3000
       - NEXT_PUBLIC_APP_NAME=${TENANT_APP_NAME:-ChatAdmin}
     volumes:
-      - ./frontend:/app
+      - ./apps/frontend:/app
       - /app/node_modules
       - /app/.next
     depends_on:
@@ -174,15 +174,15 @@ services:
     develop:
       watch:
         - action: sync
-          path: ./frontend/app
-          target: /app/app
+          path: ./apps/frontend/src/app
+          target: /app/src/app
         - action: sync
-          path: ./frontend/components
-          target: /app/components
+          path: ./apps/frontend/src/components
+          target: /app/src/components
 
   widget:
     build:
-      context: ./widget
+      context: ./apps/widget
       dockerfile: Dockerfile.dev
     container_name: acp-widget
     restart: unless-stopped
@@ -193,17 +193,17 @@ services:
       - VITE_WS_URL=ws://localhost:3000
       - VITE_WIDGET_MODE=development
     volumes:
-      - ./widget:/app
+      - ./apps/widget:/app
       - /app/node_modules
     depends_on:
       - backend
     develop:
       watch:
         - action: sync
-          path: ./widget/src
+          path: ./apps/widget/src
           target: /app/src
         - action: sync
-          path: ./widget/public
+          path: ./apps/widget/public
           target: /app/public
 
   # ==========================================

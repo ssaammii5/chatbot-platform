@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "@chatbot-platform/backend",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@chatbot-platform/shared": "*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",

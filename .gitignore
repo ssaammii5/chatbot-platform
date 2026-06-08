@@ -170,3 +170,14 @@ ai-service/models/*.joblib
 # ==========================================
 *.local.md
 *.local.txt
+
+# ==========================================
+# NX Monorepo Cache
+# ==========================================
+.nx/cache
+.nx/workspace-data
+
+# Legacy directory remnant (Docker-owned dist/ — remove with: sudo rm -rf backend/)
+backend/dist/
+backend/node_modules/
+backend/uploads/

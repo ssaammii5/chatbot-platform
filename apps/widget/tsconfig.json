@@ -1,0 +1,18 @@
+{
+  "extends": "@tsconfig/svelte",
+  "compilerOptions": {
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@chatbot-platform/shared": ["../../libs/shared/src/index.ts"],
+      "@chatbot-platform/shared/*": ["../../libs/shared/src/*"]
+    }
+  },
+  "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.svelte"],
+  "exclude": ["node_modules"]
+}
