@@ -1,0 +1,26 @@
+FROM node:24-alpine
+# Enable corepack to get the native pnpm binary
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# 1. Copy workspace configurations & root-level lockfile
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json ./
+
+# 2. Copy application manifests so pnpm can compute workspace layout
+COPY apps/backend/package.json ./apps/backend/
+COPY apps/worker/package.json ./apps/worker/
+COPY apps/frontend/package.json ./apps/frontend/
+COPY apps/widget/package.json ./apps/widget/
+# If you add a shared package later (like packages/db), copy its package.json here too
+
+# 3. Install dependencies across the entire workspace
+RUN pnpm install --frozen-lockfile
+
+# 4. Copy the rest of the source directories
+COPY . .
+
+EXPOSE 3000
+
+# Execute backend development task using the specific workspace filter
+CMD ["pnpm", "turbo", "run", "dev", "--filter", "backend"]
