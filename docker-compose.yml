@@ -15,7 +15,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
@@ -90,6 +90,7 @@ services:
       - '3000:3000'
     environment:
       - NODE_ENV=development
+      - CI=true
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
       - REDIS_URL=redis://default:${REDIS_PASSWORD}@redis:6379
       - AI_SERVICE_URL=http://ai-service:8000
