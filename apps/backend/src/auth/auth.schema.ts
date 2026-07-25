@@ -1,4 +1,5 @@
 import { pgTable, uuid, varchar, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { createSelectSchema, createInsertSchema } from 'drizzle-zod';
 
 export const users = pgTable('users', {
     id: uuid('id').defaultRandom().primaryKey(),
@@ -12,3 +13,15 @@ export const users = pgTable('users', {
 }, (table) => [
     uniqueIndex('email_idx').on(table.email),
 ]);
+
+export const userSessions = pgTable('user_sessions', {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+    token: text('token').notNull().unique(),
+    isRevoked: text('is_revoked').default('false').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+});
+
+export const selectUserSchema = createSelectSchema(users);
+export const insertUserSchema = createInsertSchema(users);
